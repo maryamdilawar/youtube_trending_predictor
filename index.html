@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>US YouTube Trending Video Predictor</title>
+
+    <!-- Premium Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+
+    <style>
+        :root {
+            --bg-gradient: radial-gradient(circle at 10% 0%, #1b2b4b 0, #050816 40%, #02030a 100%);
+            --primary: #ff0033;
+            --primary-soft: #ff4b70;
+            --accent: #3bb4ff;
+            --accent-soft: #7ae2ff;
+            --glass-bg: rgba(10, 15, 30, 0.75);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-sub: #b7c0d9;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: "Poppins", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Background glow circles */
+        .bg-orb {
+            position: fixed;
+            border-radius: 999px;
+            filter: blur(65px);
+            opacity: 0.65;
+            z-index: 0;
+        }
+
+        .bg-orb.red {
+            width: 380px;
+            height: 380px;
+            background: rgba(255, 0, 76, 0.65);
+            top: -80px;
+            right: -60px;
+        }
+
+        .bg-orb.blue {
+            width: 420px;
+            height: 420px;
+            background: rgba(23, 131, 255, 0.7);
+            bottom: -120px;
+            left: -80px;
+        }
+
+        .bg-orb.purple {
+            width: 300px;
+            height: 300px;
+            background: rgba(139, 92, 246, 0.7);
+            bottom: 10%;
+            right: 18%;
+        }
+
+        /* Soft animated gradient strip behind card */
+        .strip {
+            position: fixed;
+            width: 160%;
+            height: 280px;
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(236, 72, 153, 0.18), rgba(56, 189, 248, 0.2));
+            top: 18%;
+            left: -30%;
+            filter: blur(40px);
+            opacity: 0.7;
+            animation: slideStrip 18s linear infinite alternate;
+            z-index: 0;
+        }
+
+        @keyframes slideStrip {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(80px); }
+        }
+
+        /* Layout container */
+        .wrapper {
+            position: relative;
+            z-index: 2;
+            max-width: 1100px;
+            width: 100%;
+            padding: 24px;
+            display: flex;
+            gap: 32px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Left side: title + description */
+        .left-panel {
+            max-width: 420px;
+            padding: 18px;
+        }
+
+        .logo-row {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            margin-bottom: 16px;
+            backdrop-filter: blur(14px);
+            gap: 8px;
+        }
+
+        .logo-row img {
+            width: 22px;
+            height: 22px;
+        }
+
+        .logo-row span {
+            font-size: 12px;
+            color: #e5e7eb;
+        }
+
+        .hero-title {
+            font-size: 28px;
+            line-height: 1.25;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            margin: 0 0 10px;
+        }
+
+        .hero-title span {
+            background: linear-gradient(90deg, #ff4b70, #f97316);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 14px;
+            color: var(--text-sub);
+            margin-bottom: 18px;
+        }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .pill {
+            font-size: 11px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: #e5e7eb;
+        }
+
+        /* Right side: glass card */
+        .card {
+            width: 360px;
+            max-width: 100%;
+            padding: 26px 24px 22px;
+            border-radius: 24px;
+            background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), rgba(15, 23, 42, 0.94));
+            box-shadow:
+                0 24px 50px rgba(15, 23, 42, 0.9),
+                0 0 0 1px rgba(148, 163, 184, 0.3);
+            border: 1px solid var(--border-glass);
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: -40%;
+            background: conic-gradient(from 200deg, rgba(59, 130, 246, 0.15), rgba(236, 72, 153, 0.2), rgba(56, 189, 248, 0.15), transparent 60%);
+            opacity: 0.4;
+            mix-blend-mode: screen;
+            animation: rotateGlow 18s linear infinite;
+        }
+
+        .card-inner {
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes rotateGlow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .card-title-block {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .card-sub {
+            font-size: 11px;
+            color: var(--text-sub);
+        }
+
+        .yt-icon-wrap {
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            background: radial-gradient(circle at 30% 20%, #fff, #ff0033);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 18px rgba(248, 113, 113, 0.8);
+        }
+
+        .yt-icon-wrap img {
+            width: 22px;
+        }
+
+        /* Form styling */
+        form {
+            margin-top: 12px;
+        }
+
+        .field {
+            text-align: left;
+            margin-bottom: 14px;
+        }
+
+        .field-label {
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-bottom: 4px;
+        }
+
+        .field-input-wrap {
+            position: relative;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 10px 12px 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.08s;
+        }
+
+        .field input:focus {
+            border-color: var(--accent-soft);
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 20px rgba(56, 189, 248, 0.35);
+            background: rgba(15, 23, 42, 0.98);
+            transform: translateY(-1px);
+        }
+
+        .hint {
+            font-size: 10px;
+            color: rgba(148, 163, 184, 0.9);
+            margin-top: 3px;
+        }
+
+        .btn-primary {
+            margin-top: 10px;
+            width: 100%;
+            border: none;
+            border-radius: 999px;
+            padding: 11px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: white;
+            cursor: pointer;
+            background-image: linear-gradient(120deg, var(--primary), #f97316);
+            box-shadow:
+                0 14px 25px rgba(248, 113, 113, 0.35),
+                0 0 0 1px rgba(248, 250, 252, 0.08);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px) scale(1.02);
+            box-shadow:
+                0 20px 40px rgba(248, 113, 113, 0.45),
+                0 0 0 1px rgba(248, 250, 252, 0.12);
+            filter: brightness(1.04);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0) scale(0.995);
+            box-shadow:
+                0 10px 18px rgba(248, 113, 113, 0.35),
+                0 0 0 1px rgba(248, 250, 252, 0.12);
+        }
+
+        .helper-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 10px;
+            color: var(--text-sub);
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: radial-gradient(circle at 30% 20%, #fff, #22c55e);
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+            display: inline-block;
+            margin-right: 4px;
+        }
+
+        /* Result area */
+        .result-box {
+            margin-top: 14px;
+            padding: 12px 12px;
+            border-radius: 14px;
+            font-size: 12px;
+            line-height: 1.5;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: fadeUp 0.35s ease-out;
+        }
+
+        .result-box.good {
+            border-color: rgba(34, 197, 94, 0.8);
+            box-shadow: 0 0 18px rgba(34, 197, 94, 0.45);
+        }
+
+        .result-box.bad {
+            border-color: rgba(239, 68, 68, 0.8);
+            box-shadow: 0 0 18px rgba(239, 68, 68, 0.45);
+        }
+
+        .result-icon {
+            font-size: 16px;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Flag mini badge */
+        .flag-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-top: 6px;
+        }
+
+        .flag-tag span {
+            font-size: 14px;
+        }
+
+        /* Responsive tweaks */
+        @media (max-width: 880px) {
+            body {
+                align-items: flex-start;
+            }
+            .wrapper {
+                margin-top: 32px;
+                gap: 22px;
+            }
+            .left-panel {
+                text-align: center;
+                padding: 6px 10px 0;
+            }
+            .hero-title {
+                font-size: 24px;
+            }
+            .hero-title span {
+                display: block;
+            }
+            .pill-row {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 20px 18px 18px;
+                border-radius: 20px;
+            }
+            .card-title {
+                font-size: 14px;
+            }
+            .hero-title {
+                font-size: 22px;
+            }
+            .strip {
+                top: 26%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- background glows -->
+    <div class="bg-orb red"></div>
+    <div class="bg-orb blue"></div>
+    <div class="bg-orb purple"></div>
+    <div class="strip"></div>
+
+    <div class="wrapper">
+        <!-- Left: description / hero text -->
+        <section class="left-panel">
+            <div class="logo-row">
+                <img src="https://www.svgrepo.com/show/13671/youtube.svg" alt="YouTube logo" />
+                <span>US YouTube • Trending Insights</span>
+            </div>
+
+            <h1 class="hero-title">
+                Predict if your video will
+                <span>trend in the United States</span>
+            </h1>
+
+            <p class="hero-subtitle">
+                This mini AI assistant uses real US YouTube trending data to estimate whether a video
+                with given <strong>views, likes, and comments</strong> has the potential to appear in
+                the trending section.
+            </p>
+
+            <div class="pill-row">
+                <div class="pill">US audience focus 🇺🇸</div>
+                <div class="pill">Engagement-based model</div>
+                <div class="pill">Real YouTube dataset</div>
+            </div>
+
+            <div class="flag-tag">
+                <span>🇺🇸</span> Optimized for US trending behavior
+            </div>
+        </section>
+
+        <!-- Right: prediction card -->
+        <section class="card">
+            <div class="card-inner">
+                <div class="card-header">
+                    <div class="card-title-block">
+                        <div class="card-title">US YouTube Trending Predictor</div>
+                        <div class="card-sub">Enter your metrics and get an instant prediction.</div>
+                    </div>
+                    <div class="yt-icon-wrap">
+                        <img src="https://www.svgrepo.com/show/13671/youtube.svg" alt="YouTube" />
+                    </div>
+                </div>
+
+                <form action="/predict" method="post">
+                    <div class="field">
+                        <div class="field-label">Views</div>
+                        <div class="field-input-wrap">
+                            <input type="number" name="views" placeholder="e.g. 750000" min="0" step="1" required />
+                        </div>
+                        <div class="hint">Total number of views your video currently has.</div>
+                    </div>
+
+                    <div class="field">
+                        <div class="field-label">Likes</div>
+                        <div class="field-input-wrap">
+                            <input type="number" name="likes" placeholder="e.g. 32000" min="0" step="1" required />
+                        </div>
+                        <div class="hint">Higher like-to-view ratio usually boosts trending chances.</div>
+                    </div>
+
+                    <div class="field">
+                        <div class="field-label">Comments</div>
+                        <div class="field-input-wrap">
+                            <input type="number" name="comments" placeholder="e.g. 2100" min="0" step="1" required />
+                        </div>
+                        <div class="hint">Comments indicate strong engagement and discussion.</div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Predict</button>
+
+                    <div class="helper-row">
+                        <div><span class="dot"></span>Model based on US trending dataset</div>
+                        <div>Output: Trend / Not trend</div>
+                    </div>
+                </form>
+
+                {% if prediction_text %}
+                    <div class="result-box {% if 'LIKELY to TREND' in prediction_text %}good{% else %}bad{% endif %}">
+                        <div class="result-icon">
+                            {% if 'LIKELY to TREND' in prediction_text %}
+                                🚀
+                            {% else %}
+                                ⚠️
+                            {% endif %}
+                        </div>
+                        <div>{{ prediction_text }}</div>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</body>
+</html>
